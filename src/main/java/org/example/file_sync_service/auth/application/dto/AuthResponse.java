@@ -1,0 +1,16 @@
+package org.example.file_sync_service.auth.application.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class AuthResponse {
+  String accessToken;
+  String refreshToken;
+  String tokenType;
+  long accessExpiresIn;
+  long refreshExpiresIn;
+}

@@ -1,0 +1,98 @@
+package org.example.file_sync_service.auth.application.auth_service.jwt;
+
+import org.example.file_sync_service.identity_context.domain.model.aggregate.User;
+import org.example.file_sync_service.identity_context.domain.model.entity.Role;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+import javax.crypto.SecretKey;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@RequiredArgsConstructor
+@Component
+public class JwtProvider {
+  private final JwtProperties jwtProperties;
+
+  public long getExpiration(TokenType type) {
+    return switch (type) {
+      case ACCESS -> jwtProperties.getAccessExpiration();
+      case REFRESH -> jwtProperties.getRefreshExpiration();
+    };
+  }
+
+  public String generateToken(User user, TokenType type) {
+    List<String> permissions =
+        user.getRoles().stream()
+            .map(Role::getPermissionsCode)
+            .flatMap(java.util.Collection::stream)
+            .toList();
+
+    List<String> roles = user.getRoles().stream().map(Role::getName).toList();
+
+    long expiration = getExpiration(type);
+    Date now = new Date();
+    Date expiryDate = new Date(now.getTime() + expiration);
+
+    JwtBuilder builder =
+        Jwts.builder()
+            .subject(user.getId().toString())
+            .claim("roles", roles)
+            .claim("tokenType", type.name())
+            .issuedAt(now)
+            .expiration(expiryDate)
+            .signWith(getSigningKey())
+            .id(UUID.randomUUID().toString());
+    if (type == TokenType.ACCESS) {
+      builder.claim("permissions", permissions);
+    }
+    return builder.compact();
+  }
+
+  private SecretKey getSigningKey() {
+    return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+  }
+
+  public boolean validateToken(String token) {
+    try {
+      parseClaims(token);
+      return true;
+    } catch (JwtException e) {
+      return false;
+    }
+  }
+
+  public String extractRole(String token) {
+    return parseClaims(token).get("roles", String.class);
+  }
+
+  public String extractPermission(String token) {
+    return parseClaims(token).get("permissions", String.class);
+  }
+
+  public UUID extractUserId(String token) {
+    Claims claims = parseClaims(token);
+    return UUID.fromString(claims.getSubject());
+  }
+
+  public TokenType extractTokenType(String token) {
+    return TokenType.valueOf(parseClaims(token).get("tokenType", String.class));
+  }
+
+  public boolean isTokenType(String token, TokenType expectedType) {
+    try {
+      return extractTokenType(token) == expectedType;
+    } catch (IllegalArgumentException | NullPointerException exception) {
+      return false;
+    }
+  }
+
+  private Claims parseClaims(String token) {
+    return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
+  }
+}

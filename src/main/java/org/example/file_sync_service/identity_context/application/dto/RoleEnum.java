@@ -1,0 +1,28 @@
+package org.example.file_sync_service.identity_context.application.dto;
+
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+public enum RoleEnum {
+  ADMIN(UUID.fromString("11111111-1111-1111-1111-111111111111"), "ADMIN"),
+
+  USER(UUID.fromString("22222222-2222-2222-2222-222222222222"), "USER"),
+
+  MANAGER(UUID.fromString("33333333-3333-3333-3333-333333333333"), "MANAGER"),
+
+  STAFF(UUID.fromString("44444444-4444-4444-4444-444444444444"), "STAFF");
+  private final UUID id;
+  private final String name;
+
+  public static RoleEnum fromName(String name) {
+    for (RoleEnum role : values()) {
+      if (role.name.equalsIgnoreCase(name)) {
+        return role;
+      }
+    }
+    throw new IllegalArgumentException("Invalid role: " + name);
+  }
+}
