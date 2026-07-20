@@ -71,6 +71,58 @@ public class SyncedFile {
     return new SyncedFile(userId, deviceId, relativePath, objectKey, size, checksum);
   }
 
+  /** Đánh dấu đã khởi tạo phiên upload multipart, chờ client gửi các phần dữ liệu. */
+  public void markInitiated() {
+    this.status = FileStatus.INITIATED;
+    this.updatedAt = Instant.now();
+  }
+
+  /** Đánh dấu đang truyền các phần dữ liệu (chuyển từ INITIATED sang UPLOADING). */
+  public void markUploading() {
+    this.status = FileStatus.UPLOADING;
+    this.updatedAt = Instant.now();
+  }
+
+  /** Phiên còn nhận thêm phần dữ liệu (đã khởi tạo hoặc đang upload dở). */
+  public boolean isAcceptingParts() {
+    return this.status == FileStatus.INITIATED || this.status == FileStatus.UPLOADING;
+  }
+
+  /** Đánh dấu đã upload xong toàn bộ, đang đối chiếu checksum để xác thực toàn vẹn. */
+  public void markVerifying() {
+    this.status = FileStatus.VERIFYING;
+    this.updatedAt = Instant.now();
+  }
+
+  /**
+   * Hoàn tất upload thành công: ghi nhận kích thước/checksum thực tế và chuyển sang COMPLETED.
+   */
+  public void completeUpload(long finalSize, String finalChecksum) {
+    this.size = finalSize;
+    this.checksum = finalChecksum;
+    this.status = FileStatus.COMPLETED;
+    this.updatedAt = Instant.now();
+  }
+
+  /** Đánh dấu checksum sau khi upload không khớp — dữ liệu hỏng. */
+  public void markChecksumMismatch() {
+    this.status = FileStatus.CHECKSUM_MISMATCH;
+    this.updatedAt = Instant.now();
+  }
+
+  /** Đánh dấu phiên upload bị huỷ bởi client hoặc do timeout. */
+  public void markAborted() {
+    this.status = FileStatus.ABORTED;
+    this.updatedAt = Instant.now();
+  }
+
+  /** Trạng thái upload còn đang dở dang (chưa hoàn tất, chưa lỗi/huỷ) nên có thể huỷ. */
+  public boolean isInProgress() {
+    return this.status == FileStatus.INITIATED
+        || this.status == FileStatus.UPLOADING
+        || this.status == FileStatus.VERIFYING;
+  }
+
   /** Đánh dấu nội dung đã upload xong và sẵn sàng tải về. */
   public void markAvailable() {
     this.status = FileStatus.AVAILABLE;
