@@ -1,4 +1,4 @@
-package org.example.file_sync_service.identity_context.infastructure.presentation;
+package org.example.file_sync_service.identity_context.presentation;
 
 import org.example.file_sync_service.auth.infrastructure.security.CustomUserDetails;
 import org.example.file_sync_service.identity_context.application.dto.UserProfileResponse;
