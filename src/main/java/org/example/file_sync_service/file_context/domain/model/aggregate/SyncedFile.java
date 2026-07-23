@@ -17,13 +17,10 @@ import org.example.file_sync_service.file_context.domain.model.enums.FileStatus;
 @AllArgsConstructor
 public class SyncedFile {
 
-  /** Định danh nội bộ của bản ghi file. */
   private UUID id;
 
-  /** Chủ sở hữu file — tham chiếu tới User.id của identity_context. */
   private UUID userId;
 
-  /** Thiết bị nguồn, ví dụ "linux-laptop". */
   private String deviceId;
 
   /** Đường dẫn tương đối trên thiết bị, ví dụ "Documents/report.pdf". */
@@ -32,7 +29,6 @@ public class SyncedFile {
   /** Khoá object trên MinIO chứa nội dung file. */
   private String objectKey;
 
-  /** Kích thước nội dung, tính bằng byte. */
   private long size;
 
   /** Checksum nội dung, ví dụ "sha256:...". */
@@ -41,7 +37,6 @@ public class SyncedFile {
   /** Số phiên bản, bắt đầu từ 1 và tăng mỗi lần nội dung thay đổi. */
   private int version;
 
-  /** Trạng thái vòng đời hiện tại. */
   private FileStatus status;
 
   private Instant createdAt;

@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Điều phối các use case của file_context ở tầng application. */
 @Service
 @RequiredArgsConstructor
 public class FileService {
@@ -174,13 +173,11 @@ public class FileService {
   }
 
   /**
-   * Huỷ một phiên upload multipart đang dở dang.
-   *
    * <p>Đưa bản ghi {@link SyncedFile} về trạng thái {@link FileStatus#ABORTED}. Chỉ huỷ được các
    * phiên còn đang tiến hành (INITIATED/UPLOADING/VERIFYING); nếu đã COMPLETED/AVAILABLE hoặc đã
    * huỷ/lỗi trước đó thì từ chối.
    *
-   * @param userId chủ sở hữu phiên upload (lấy từ ngữ cảnh xác thực).
+   * @param userId chủ sở hữu phiên upload
    * @param fileUploadId định danh phiên upload cần huỷ.
    */
   @Transactional

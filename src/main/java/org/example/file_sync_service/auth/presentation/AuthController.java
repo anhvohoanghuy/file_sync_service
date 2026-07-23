@@ -1,4 +1,4 @@
-package org.example.file_sync_service.auth.infrastructure.presentation;
+package org.example.file_sync_service.auth.presentation;
 
 import org.example.file_sync_service.auth.application.AuthService;
 import org.example.file_sync_service.auth.application.dto.AuthRequest;
