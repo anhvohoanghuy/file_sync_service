@@ -45,17 +45,34 @@ public class FileService {
     validate(userId, deviceId, request);
 
     String relativePath = buildRelativePath(request.path, request.fileName);
+
+    String warning = null;
+    // cấp một relativePath mới có hậu tố tăng dần và trả kèm cảnh báo cho client nếu trùng userId+deviceId+relativePath
+    if (isDuplicateContentAtLocation(userId, deviceId, relativePath, request.checksum)) {
+      String uniquePath = nextAvailableRelativePath(userId, deviceId, relativePath);
+      warning =
+          "A file with the same content and location already exists; a new path was assigned: "
+              + uniquePath;
+      relativePath = uniquePath;
+    }
+
     String objectKey = buildObjectKey(userId, deviceId, request.fileName);
 
-    // checksum chưa biết ở bước khởi tạo, sẽ được đối chiếu khi VERIFYING.
+    // checksum client khai báo được lưu ngay, sẽ được đối chiếu lại khi VERIFYING.
     SyncedFile file =
-        SyncedFile.register(userId, deviceId, relativePath, objectKey, request.size, null);
+        SyncedFile.register(
+            userId, deviceId, relativePath, objectKey, request.size, request.checksum);
     file.markInitiated();
 
     SyncedFile saved = fileRepository.save(file);
 
     return new UploadInitiationResponse(
-        saved.getId(), saved.getObjectKey(), minioProperties.getBucket(), saved.getStatus());
+        saved.getId(),
+        saved.getObjectKey(),
+        minioProperties.getBucket(),
+        saved.getStatus(),
+        saved.getRelativePath(),
+        warning);
   }
 
   /**
@@ -203,10 +220,6 @@ public class FileService {
     fileRepository.save(file);
   }
 
-  /**
-   * Lấy phiên upload theo id và đảm bảo thuộc về {@code userId}. Không tìm thấy hoặc thuộc người
-   * dùng khác đều trả về NOT_FOUND để không tiết lộ sự tồn tại của phiên upload người khác.
-   */
   private SyncedFile requireOwnedUpload(UUID userId, UUID fileUploadId) {
     SyncedFile file =
         fileRepository
@@ -253,5 +266,46 @@ public class FileService {
   /** Sinh khoá object duy nhất: {userId}/{deviceId}/{token}/{fileName}. */
   private String buildObjectKey(UUID userId, String deviceId, String fileName) {
     return userId + "/" + deviceId + "/" + UUID.randomUUID() + "/" + fileName;
+  }
+
+  /**
+   * Có bản ghi nào tại đúng vị trí (userId+deviceId+relativePath) và cùng checksum client khai báo
+   * hay không. Chỉ xét khi checksum được cung cấp; thiếu checksum thì không coi là trùng.
+   */
+  private boolean isDuplicateContentAtLocation(
+      UUID userId, String deviceId, String relativePath, String checksum) {
+    if (checksum == null || checksum.isBlank()) {
+      return false;
+    }
+    return fileRepository
+        .findByLocation(userId, deviceId, relativePath)
+        .map(existing -> checksum.equalsIgnoreCase(existing.getChecksum()))
+        .orElse(false);
+  }
+
+  /**
+   * Tìm relativePath còn trống bằng cách chèn hậu tô " (n)" trước phần mở rộng, tăng n cho tới khi
+   * không còn bản ghi nào chiếm vị trí đó. Ví dụ "docs/report.pdf" -> "docs/report (1).pdf".
+   */
+  private String nextAvailableRelativePath(UUID userId, String deviceId, String relativePath) {
+    int counter = 1;
+    String candidate;
+    do {
+      candidate = appendSuffix(relativePath, counter);
+      counter++;
+    } while (fileRepository.findByLocation(userId, deviceId, candidate).isPresent());
+    return candidate;
+  }
+
+  /** Chèn " (n)" trước phần mở rộng của tên file, giữ nguyên thư mục và đuôi file. */
+  private String appendSuffix(String relativePath, int n) {
+    int slash = relativePath.lastIndexOf('/');
+    String dir = slash >= 0 ? relativePath.substring(0, slash + 1) : "";
+    String name = slash >= 0 ? relativePath.substring(slash + 1) : relativePath;
+    int dot = name.lastIndexOf('.');
+    if (dot > 0) {
+      return dir + name.substring(0, dot) + " (" + n + ")" + name.substring(dot);
+    }
+    return dir + name + " (" + n + ")";
   }
 }

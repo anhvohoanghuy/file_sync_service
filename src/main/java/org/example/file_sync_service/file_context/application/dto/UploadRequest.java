@@ -5,4 +5,5 @@ public class UploadRequest {
     public String fileName;
     public Long size;
     public String contentType;
+    public String checksum;
 }

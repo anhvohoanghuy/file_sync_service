@@ -11,6 +11,14 @@ import org.example.file_sync_service.file_context.domain.model.enums.FileStatus;
  * @param objectKey khoá object trên MinIO nơi nội dung sẽ được lưu.
  * @param bucket bucket chứa object.
  * @param status trạng thái hiện tại của phiên upload (INITIATED).
+ * @param relativePath đường dẫn tương đối thực tế được cấp cho phiên (có thể khác yêu cầu nếu bị
+ *     trùng nội dung và vị trí nên đã được thêm hậu tố).
+ * @param warning thông báo cảnh báo (null nếu không có), ví dụ khi phát hiện file trùng.
  */
 public record UploadInitiationResponse(
-    UUID fileUploadId, String objectKey, String bucket, FileStatus status) {}
+    UUID fileUploadId,
+    String objectKey,
+    String bucket,
+    FileStatus status,
+    String relativePath,
+    String warning) {}
